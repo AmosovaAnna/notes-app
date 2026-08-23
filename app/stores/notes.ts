@@ -1,7 +1,11 @@
 import { defineStore } from "pinia"
-import { computed, ref, type ComputedRef, type Ref } from "vue"
+import { computed, ref, watch, type ComputedRef, type Ref, type WatchStopHandle } from "vue"
 import type { Note } from "~/types/note"
+import { readNotes, writeNotes } from "~/services/storage"
+import { createDebounce } from "~/utils/debounce"
 import { createId } from "~/utils/id"
+
+const SAVE_DELAY_MS = 500
 
 export const useNotesStore = defineStore("notes", () => {
   const notes: Ref<Array<Note>> = ref([])
@@ -9,6 +13,32 @@ export const useNotesStore = defineStore("notes", () => {
   const sortedNotes: ComputedRef<Array<Note>> = computed(() =>
     [...notes.value].sort((a, b) => b.updatedAt - a.updatedAt),
   )
+
+  const save = createDebounce(() => writeNotes(notes.value), SAVE_DELAY_MS)
+
+  let stopWatch: WatchStopHandle | null = null
+
+  function saveNow(): void {
+    save.runNow()
+  }
+
+  function handleVisibilityChange(): void {
+    if (document.visibilityState === "hidden") {
+      saveNow()
+    }
+  }
+
+  function load(): void {
+    notes.value = readNotes()
+
+    stopWatch?.()
+    stopWatch = watch(notes, () => save.schedule(), { deep: true })
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("beforeunload", saveNow)
+      document.addEventListener("visibilitychange", handleVisibilityChange)
+    }
+  }
 
   function findNote(id: string): Note | undefined {
     return notes.value.find(note => note.id === id)
@@ -46,6 +76,8 @@ export const useNotesStore = defineStore("notes", () => {
   return {
     notes,
     sortedNotes,
+    load,
+    saveNow,
     findNote,
     createNote,
     saveNote,
