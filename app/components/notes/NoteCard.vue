@@ -116,9 +116,10 @@ const restLabel = computed(() => (
   &__link {
     color: inherit;
     text-decoration: none;
+    transition: color $transition-fast;
 
     &:hover {
-      text-decoration: underline;
+      color: var(--color-primary);
     }
   }
 
@@ -134,7 +135,7 @@ const restLabel = computed(() => (
     justify-content: center;
     width: $tap-target;
     height: $tap-target;
-    color: var(--color-text-muted);
+    color: var(--color-accent);
     border-radius: $radius-md;
     transition: background $transition-fast, color $transition-fast, outline-color $transition-fast;
 
@@ -142,7 +143,6 @@ const restLabel = computed(() => (
 
     &:hover {
       background: var(--color-surface-muted);
-      color: var(--color-text);
     }
 
     svg {
@@ -186,9 +186,9 @@ const restLabel = computed(() => (
     }
 
     &--done {
-      background: var(--color-primary);
-      border-color: var(--color-primary);
-      color: var(--color-primary-contrast);
+      background: var(--color-accent-soft);
+      border-color: var(--color-accent);
+      color: var(--color-accent);
     }
   }
 

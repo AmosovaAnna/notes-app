@@ -29,6 +29,8 @@ const pageTitle = computed(() => {
   return noteTitle(title)
 })
 
+const heading = computed(() => (editor.isNew ? "Новая заметка" : "Редактирование заметки"))
+
 useHead({ title: () => `Заметка — ${pageTitle.value}` })
 
 onMounted(() => {
@@ -84,6 +86,11 @@ async function leaveToNotes(): Promise<void> {
 }
 
 async function cancelEditing(): Promise<void> {
+  if (!editor.hasUnsavedChanges) {
+    await leaveToNotes()
+    return
+  }
+
   const confirmed = await ask({
     title: "Отменить редактирование?",
     message: "Несохранённые изменения будут потеряны.",
@@ -145,6 +152,10 @@ async function deleteNote(): Promise<void> {
   >
     <div class="editor__toolbar">
       <div class="editor__history">
+        <h1 class="editor__heading">
+          {{ heading }}
+        </h1>
+
         <BaseIconButton
           label="Отменить изменение"
           :disabled="!editor.canUndo"
@@ -176,7 +187,7 @@ async function deleteNote(): Promise<void> {
         </BaseButton>
 
         <BaseButton
-          variant="primary"
+          variant="success"
           @click="save"
         >
           Сохранить
@@ -225,7 +236,10 @@ async function deleteNote(): Promise<void> {
     </p>
 
     <div>
-      <BaseButton @click="addTodo">
+      <BaseButton
+        variant="primary"
+        @click="addTodo"
+      >
         <IconPlus class="editor__plus" />
         Добавить пункт
       </BaseButton>
@@ -244,7 +258,7 @@ async function deleteNote(): Promise<void> {
         </BaseButton>
 
         <BaseButton
-          variant="primary"
+          variant="success"
           @click="save"
         >
           Сохранить заново
@@ -299,6 +313,16 @@ async function deleteNote(): Promise<void> {
   flex-direction: column;
   gap: $space-4;
 
+  &__heading {
+    margin-right: $space-2;
+    font-size: 20px;
+    font-weight: 700;
+
+    @include from($bp-md) {
+      font-size: 24px;
+    }
+  }
+
   &__toolbar {
     display: flex;
     align-items: center;
@@ -307,18 +331,38 @@ async function deleteNote(): Promise<void> {
     flex-wrap: wrap;
   }
 
-  &__history,
-  &__actions {
+  &__history {
     display: flex;
     align-items: center;
     gap: $space-2;
   }
 
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    flex-wrap: wrap;
+
+    > * {
+      flex: 1 1 auto;
+    }
+
+    @include from($bp-sm) {
+      flex-wrap: nowrap;
+
+      > * {
+        flex: 0 0 auto;
+      }
+    }
+  }
+
   &__todos {
-    position: relative;
     display: flex;
     flex-direction: column;
-    gap: $space-2;
+
+    > li {
+      padding-bottom: $space-2;
+    }
   }
 
   &__hint {
@@ -332,23 +376,26 @@ async function deleteNote(): Promise<void> {
   }
 }
 
-.todo-enter-active,
-.todo-leave-active {
-  transition: opacity $transition-fast, transform $transition-fast;
+.todo-enter-active {
+  transition: opacity $transition-fast;
 }
 
-.todo-enter-from,
-.todo-leave-to {
+.todo-enter-from {
   opacity: 0;
-  transform: translateY(-6px);
 }
 
 .todo-leave-active {
-  position: absolute;
-  width: 100%;
+  overflow: hidden;
+  max-height: 140px;
+  transition:
+    opacity $transition-fast,
+    max-height $transition-base,
+    padding-bottom $transition-base;
 }
 
-.todo-move {
-  transition: transform $transition-base;
+.todo-leave-to {
+  max-height: 0;
+  padding-bottom: 0;
+  opacity: 0;
 }
 </style>

@@ -3,7 +3,7 @@ import type { Note } from "~/types/note"
 import { ROUTES } from "~/const/routes"
 import { BUTTON_VARIANT } from "~/const/variants"
 
-useHead({ title: "Заметки" })
+useHead({ title: "Все заметки" })
 
 const notesStore = useNotesStore()
 const { ask } = useConfirm()
@@ -32,7 +32,7 @@ async function deleteNote(note: Note): Promise<void> {
   <section class="notes">
     <div class="notes__head">
       <h1 class="notes__title">
-        Заметки
+        Все заметки
       </h1>
 
       <BaseButton

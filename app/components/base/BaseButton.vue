@@ -57,23 +57,30 @@ defineProps({
   }
 
   &--secondary {
-    background: var(--color-surface);
-    border-color: var(--color-border);
-    color: var(--color-text);
+    background: transparent;
+    border-color: var(--color-primary);
+    color: var(--color-primary);
 
     &:hover:not(:disabled) {
-      background: var(--color-surface-muted);
+      background: var(--color-primary-soft);
+    }
+  }
+
+  &--success {
+    background: var(--color-accent);
+    color: var(--color-primary-contrast);
+
+    &:hover:not(:disabled) {
+      background: var(--color-accent-hover);
     }
   }
 
   &--danger {
-    background: transparent;
-    border-color: var(--color-border);
-    color: var(--color-danger);
+    background: var(--color-danger);
+    color: var(--color-primary-contrast);
 
     &:hover:not(:disabled) {
-      background: var(--color-surface-muted);
-      border-color: var(--color-danger);
+      background: var(--color-danger-hover);
     }
   }
 }

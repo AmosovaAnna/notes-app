@@ -60,13 +60,13 @@ function onChange(event: Event): void {
   &__tick {
     width: 13px;
     height: 13px;
-    color: var(--color-primary-contrast);
+    color: var(--color-accent);
     opacity: 0;
   }
 
   &__input:checked + &__box {
-    background: var(--color-primary);
-    border-color: var(--color-primary);
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent);
 
     .checkbox__tick {
       opacity: 1;

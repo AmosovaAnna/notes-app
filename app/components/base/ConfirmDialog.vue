@@ -15,7 +15,10 @@ const { isOpen, options, respond } = useConfirm()
     </p>
 
     <template #actions>
-      <BaseButton @click="respond(false)">
+      <BaseButton
+        :variant="BUTTON_VARIANT.SECONDARY"
+        @click="respond(false)"
+      >
         {{ options.cancelLabel ?? "Отмена" }}
       </BaseButton>
 
