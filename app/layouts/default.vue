@@ -1,7 +1,9 @@
 <template>
   <div class="layout">
     <header class="layout__header">
-      <NuxtLink to="/" class="layout__brand">Заметки</NuxtLink>
+      <NuxtLink to="/" class="layout__brand">
+        Заметки
+    </NuxtLink>
     </header>
 
     <main class="layout__main">

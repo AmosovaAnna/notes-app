@@ -1,9 +1,9 @@
-import { defineStore } from 'pinia'
-import { computed, ref, type ComputedRef, type Ref } from 'vue'
-import type { Note } from '~/types/note'
-import { createId } from '~/utils/id'
+import { defineStore } from "pinia"
+import { computed, ref, type ComputedRef, type Ref } from "vue"
+import type { Note } from "~/types/note"
+import { createId } from "~/utils/id"
 
-export const useNotesStore = defineStore('notes', () => {
+export const useNotesStore = defineStore("notes", () => {
   const notes: Ref<Array<Note>> = ref([])
 
   const sortedNotes: ComputedRef<Array<Note>> = computed(() =>
@@ -17,7 +17,7 @@ export const useNotesStore = defineStore('notes', () => {
   function createNote(): Note {
     const note: Note = {
       id: createId(),
-      title: '',
+      title: "",
       todos: [],
       updatedAt: Date.now(),
     }
