@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
-import { readNotes, writeNotes } from "~/services/storage"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { clearDraft, readDraft, readNotes, writeDraft, writeNotes } from "~/services/storage"
 import type { Note } from "~/types/note"
 
 const STORAGE_KEY = "notes-app:data"
+const DRAFT_KEY = "notes-app:draft"
 
 function makeNote(overrides: Partial<Note> = {}): Note {
   return {
@@ -18,6 +19,11 @@ describe("storage", () => {
   beforeEach(() => {
     localStorage.clear()
     vi.spyOn(console, "warn").mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
   })
 
   it("возвращает пустой список, когда в хранилище ничего нет", () => {
@@ -77,5 +83,77 @@ describe("storage", () => {
     }))
 
     expect(readNotes()).toEqual([valid])
+  })
+
+  it("не падает, когда запись не проходит", () => {
+    vi.stubGlobal("localStorage", {
+      getItem: () => null,
+      removeItem: () => {},
+      setItem: () => {
+        throw new Error("QuotaExceededError")
+      },
+    })
+
+    expect(() => writeNotes([makeNote()])).not.toThrow()
+    expect(() => writeDraft(makeNote())).not.toThrow()
+    expect(console.warn).toHaveBeenCalled()
+  })
+
+  it("работает вхолостую, когда хранилища нет", () => {
+    vi.stubGlobal("localStorage", undefined)
+
+    expect(readNotes()).toEqual([])
+    expect(readDraft()).toBeNull()
+    expect(() => writeNotes([makeNote()])).not.toThrow()
+    expect(() => writeDraft(makeNote())).not.toThrow()
+    expect(() => clearDraft()).not.toThrow()
+  })
+})
+
+describe("черновик", () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it("возвращает null, когда черновика нет", () => {
+    expect(readDraft()).toBeNull()
+  })
+
+  it("читает то, что записал", () => {
+    writeDraft(makeNote({ title: "Черновик" }))
+
+    expect(readDraft()?.title).toBe("Черновик")
+  })
+
+  it("не падает на битом черновике", () => {
+    localStorage.setItem(DRAFT_KEY, "{\"schemaVersion\": 1, \"note\":")
+
+    expect(readDraft()).toBeNull()
+    expect(console.warn).toHaveBeenCalled()
+  })
+
+  it("игнорирует черновик другой версии схемы", () => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ schemaVersion: 2, note: makeNote() }))
+
+    expect(readDraft()).toBeNull()
+  })
+
+  it("игнорирует черновик с неверной структурой заметки", () => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ schemaVersion: 1, note: { id: "note-1" } }))
+
+    expect(readDraft()).toBeNull()
+  })
+
+  it("удаляется по clearDraft", () => {
+    writeDraft(makeNote())
+    clearDraft()
+
+    expect(readDraft()).toBeNull()
   })
 })
