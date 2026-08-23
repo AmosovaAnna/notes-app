@@ -132,6 +132,48 @@ describe("стор заметок", () => {
     expect(storedNotes()).toHaveLength(3)
   })
 
+  it("подхватывает изменения из другой вкладки", async () => {
+    const store = useNotesStore()
+    store.load()
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      schemaVersion: 1,
+      notes: [makeNote({ id: "note-from-other-tab", title: "Из соседней вкладки" })],
+    }))
+
+    window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY }))
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(store.notes).toHaveLength(1)
+    expect(store.notes[0]?.title).toBe("Из соседней вкладки")
+  })
+
+  it("не пишет обратно то, что пришло из другой вкладки", async () => {
+    const store = useNotesStore()
+    store.load()
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, notes: [makeNote()] }))
+    window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY }))
+
+    const setItem = vi.spyOn(localStorage, "setItem")
+
+    await vi.advanceTimersByTimeAsync(1000)
+
+    expect(setItem).not.toHaveBeenCalled()
+  })
+
+  it("не реагирует на чужие ключи в хранилище", async () => {
+    const store = useNotesStore()
+    store.load()
+    store.saveNote(makeNote())
+
+    localStorage.setItem("other-app", "что-то своё")
+    window.dispatchEvent(new StorageEvent("storage", { key: "other-app" }))
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(store.notes).toHaveLength(1)
+  })
+
   it("saveNow записывает изменения немедленно", async () => {
     const store = useNotesStore()
     store.load()

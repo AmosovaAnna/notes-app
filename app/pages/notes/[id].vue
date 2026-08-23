@@ -12,6 +12,13 @@ const { focusTodoId, titleField, keepFocusNearChange, focusTodo } = useEditorFoc
 const noteId = computed(() => String(route.params.id))
 const isMissing = ref(false)
 
+const isDeletedElsewhere = computed(() => (
+  !isMissing.value
+  && !editor.isNew
+  && editor.note !== null
+  && notesStore.findNote(noteId.value) === undefined
+))
+
 const pageTitle = computed(() => {
   const title = editor.note?.title.trim() ?? ""
 
@@ -51,7 +58,7 @@ function redo(): void {
 useUndoRedoHotkeys({
   onUndo: undo,
   onRedo: redo,
-  isEnabled: () => !isConfirmOpen.value && !editor.hasDraftToRestore,
+  isEnabled: () => !isConfirmOpen.value && !editor.hasDraftToRestore && !isDeletedElsewhere.value,
 })
 
 function removeTodo(id: string): void {
@@ -66,6 +73,12 @@ function addTodo(afterId?: string): void {
 
 async function save(): Promise<void> {
   editor.save()
+
+  await navigateTo(ROUTES.NOTES)
+}
+
+async function leaveToNotes(): Promise<void> {
+  editor.cancel()
 
   await navigateTo(ROUTES.NOTES)
 }
@@ -217,6 +230,27 @@ async function deleteNote(): Promise<void> {
         Добавить пункт
       </BaseButton>
     </div>
+
+    <BaseModal
+      :open="isDeletedElsewhere"
+      title="Заметка удалена"
+      @close="leaveToNotes"
+    >
+      <p>Её удалили в другой вкладке. Можно сохранить открытую версию заново или вернуться к списку.</p>
+
+      <template #actions>
+        <BaseButton @click="leaveToNotes">
+          К списку
+        </BaseButton>
+
+        <BaseButton
+          variant="primary"
+          @click="save"
+        >
+          Сохранить заново
+        </BaseButton>
+      </template>
+    </BaseModal>
 
     <BaseModal
       :open="editor.hasDraftToRestore"

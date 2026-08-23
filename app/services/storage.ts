@@ -1,6 +1,6 @@
 import type { Note, TodoItem } from "~/types/note"
 
-const STORAGE_KEY = "notes-app:data"
+export const STORAGE_KEY = "notes-app:data"
 const DRAFT_KEY = "notes-app:draft"
 const SCHEMA_VERSION = 1
 
