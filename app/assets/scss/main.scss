@@ -1,0 +1,73 @@
+:root {
+  --color-bg: #f7f3ec;
+  --color-surface: #fffdf9;
+  --color-surface-muted: #f0e9dc;
+  --color-border: #e6ddcd;
+  --color-border-strong: #c8bba3;
+  --color-text: #241f18;
+  --color-text-muted: #7a6f5e;
+  --color-primary: #b4531f;
+  --color-primary-hover: #99451a;
+  --color-primary-contrast: #fffdf9;
+  --color-danger: #a3341f;
+  --color-danger-hover: #8a2b19;
+  --color-focus: #b4531f;
+  --color-overlay: rgb(36 31 24 / 45%);
+  --shadow-card: 0 2px 6px rgb(90 70 40 / 8%);
+  --shadow-modal: 0 18px 40px rgb(60 45 25 / 24%);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#__nuxt {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: $font-sans;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--color-primary);
+
+  @include focus-ring;
+}
+
+.sr-only {
+  @include sr-only;
+}
