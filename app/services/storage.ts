@@ -1,11 +1,18 @@
 import type { Note, TodoItem } from "~/types/note"
 
 const STORAGE_KEY = "notes-app:data"
+const DRAFT_KEY = "notes-app:draft"
 const SCHEMA_VERSION = 1
 
 interface PersistedData {
   schemaVersion: number
   notes: Array<Note>
+}
+
+interface PersistedDraft {
+  schemaVersion: number
+  note: Note
+  savedAt: number
 }
 
 function isTodoItem(value: unknown): value is TodoItem {
@@ -67,6 +74,59 @@ export function readNotes(): Array<Note> {
     console.warn("Не удалось разобрать сохранённые заметки, начинаем с пустого списка")
     return []
   }
+}
+
+export function readDraft(): Note | null {
+  if (typeof localStorage === "undefined") {
+    return null
+  }
+
+  const raw = localStorage.getItem(DRAFT_KEY)
+
+  if (raw === null) {
+    return null
+  }
+
+  try {
+    const draft = JSON.parse(raw) as PersistedDraft
+
+    if (draft.schemaVersion !== SCHEMA_VERSION || !isNote(draft.note)) {
+      return null
+    }
+
+    return draft.note
+  }
+  catch {
+    console.warn("Не удалось разобрать сохранённый черновик")
+    return null
+  }
+}
+
+export function writeDraft(note: Note): void {
+  if (typeof localStorage === "undefined") {
+    return
+  }
+
+  const draft: PersistedDraft = {
+    schemaVersion: SCHEMA_VERSION,
+    note,
+    savedAt: Date.now(),
+  }
+
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+  }
+  catch {
+    console.warn("Не удалось сохранить черновик")
+  }
+}
+
+export function clearDraft(): void {
+  if (typeof localStorage === "undefined") {
+    return
+  }
+
+  localStorage.removeItem(DRAFT_KEY)
 }
 
 export function writeNotes(notes: Array<Note>): void {
