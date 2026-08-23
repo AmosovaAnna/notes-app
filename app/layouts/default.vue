@@ -10,7 +10,7 @@
     </header>
 
     <main class="layout__main">
-      <slot />
+      <slot></slot>
     </main>
   </div>
 </template>

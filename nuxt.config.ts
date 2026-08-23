@@ -4,6 +4,8 @@ export default defineNuxtConfig({
   modules: ["@pinia/nuxt", "@nuxt/eslint"],
   ssr: false,
 
+  components: [{ path: "~/components", pathPrefix: false }],
+
   devtools: { enabled: true },
 
   app: {
