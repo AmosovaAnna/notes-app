@@ -24,7 +24,9 @@ function onChange(event: Event): void {
     <span
       class="checkbox__box"
       aria-hidden="true"
-    ></span>
+    >
+      <IconCheck class="checkbox__tick" />
+    </span>
     <span class="sr-only">{{ label }}</span>
   </label>
 </template>
@@ -44,29 +46,30 @@ function onChange(event: Event): void {
   }
 
   &__box {
-    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 20px;
     height: 20px;
     background: var(--color-surface);
     border: 2px solid var(--color-border-strong);
-    border-radius: $radius-sm;
+    border-radius: 50%;
     transition: background $transition-fast, border-color $transition-fast;
+  }
+
+  &__tick {
+    width: 13px;
+    height: 13px;
+    color: var(--color-primary-contrast);
+    opacity: 0;
   }
 
   &__input:checked + &__box {
     background: var(--color-primary);
     border-color: var(--color-primary);
 
-    &::after {
-      content: "";
-      position: absolute;
-      left: 6px;
-      top: 2px;
-      width: 5px;
-      height: 10px;
-      border: solid var(--color-primary-contrast);
-      border-width: 0 2px 2px 0;
-      transform: rotate(45deg);
+    .checkbox__tick {
+      opacity: 1;
     }
   }
 

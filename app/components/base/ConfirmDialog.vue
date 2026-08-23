@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { BUTTON_VARIANT } from "~/const/variants"
+
 const { isOpen, options, respond } = useConfirm()
 </script>
 
@@ -18,7 +20,7 @@ const { isOpen, options, respond } = useConfirm()
       </BaseButton>
 
       <BaseButton
-        :variant="options.tone === 'danger' ? 'danger' : 'primary'"
+        :variant="options.variant ?? BUTTON_VARIANT.PRIMARY"
         @click="respond(true)"
       >
         {{ options.confirmLabel ?? "Подтвердить" }}

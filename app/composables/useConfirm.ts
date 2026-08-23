@@ -1,11 +1,12 @@
 import { ref, type Ref } from "vue"
+import type { ButtonVariant } from "~/const/variants"
 
 export interface ConfirmOptions {
   title: string
   message?: string
   confirmLabel?: string
   cancelLabel?: string
-  tone?: "primary" | "danger"
+  variant?: Extract<ButtonVariant, "primary" | "danger">
 }
 
 const isOpen = ref(false)

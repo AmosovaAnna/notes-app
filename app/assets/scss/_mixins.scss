@@ -7,9 +7,11 @@
 }
 
 @mixin focus-ring($offset: 2px) {
+  outline: 2px solid transparent;
+  outline-offset: $offset;
+
   &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: $offset;
+    outline-color: var(--color-focus);
   }
 }
 

@@ -1,8 +1,12 @@
+<script setup lang="ts">
+import { ROUTES } from "~/const/routes"
+</script>
+
 <template>
   <div class="layout">
     <header class="layout__header">
       <NuxtLink
-        to="/"
+        :to="ROUTES.NOTES"
         class="layout__brand"
       >
         Заметки
@@ -33,6 +37,7 @@
     color: var(--color-text);
     font-weight: 600;
     font-size: 18px;
+    transition: outline-color $transition-fast;
     text-decoration: none;
 
     @include focus-ring;

@@ -64,6 +64,7 @@ textarea {
 
 a {
   color: var(--color-primary);
+  transition: outline-color $transition-fast;
 
   @include focus-ring;
 }

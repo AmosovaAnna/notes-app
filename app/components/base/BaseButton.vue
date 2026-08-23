@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { PropType } from "vue"
+import { BUTTON_TYPE, BUTTON_VARIANT, type ButtonType, type ButtonVariant } from "~/const/variants"
 
 defineProps({
-  variant: { type: String as PropType<"primary" | "ghost" | "danger">, default: "ghost" },
-  type: { type: String as PropType<"button" | "submit">, default: "button" },
+  variant: { type: String as PropType<ButtonVariant>, default: BUTTON_VARIANT.SECONDARY },
+  type: { type: String as PropType<ButtonType>, default: BUTTON_TYPE.BUTTON },
   disabled: { type: Boolean, default: false },
 })
 </script>
@@ -31,8 +32,13 @@ defineProps({
   border-radius: $radius-md;
   font-size: 15px;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
-  transition: background $transition-fast, border-color $transition-fast, color $transition-fast;
+  transition:
+    background $transition-fast,
+    border-color $transition-fast,
+    color $transition-fast,
+    outline-color $transition-fast;
 
   @include focus-ring;
 
@@ -50,7 +56,7 @@ defineProps({
     }
   }
 
-  &--ghost {
+  &--secondary {
     background: var(--color-surface);
     border-color: var(--color-border);
     color: var(--color-text);

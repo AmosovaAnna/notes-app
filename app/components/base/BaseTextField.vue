@@ -1,20 +1,33 @@
 <script setup lang="ts">
 import type { PropType } from "vue"
+import { TEXT_FIELD_SIZE, type TextFieldSize } from "~/const/variants"
 
 defineProps({
   modelValue: { type: String, required: true },
   label: { type: String, required: true },
   placeholder: { type: String, default: "" },
-  size: { type: String as PropType<"normal" | "title">, default: "normal" },
+  size: { type: String as PropType<TextFieldSize>, default: TEXT_FIELD_SIZE.NORMAL },
   showLabel: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(["update:modelValue", "blur"])
 
 const fieldId = useId()
+const input = ref<HTMLInputElement | null>(null)
+
+function focus(): void {
+  input.value?.focus({ preventScroll: true })
+  input.value?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+}
+
+defineExpose({ focus })
 
 function onInput(event: Event): void {
   emit("update:modelValue", (event.target as HTMLInputElement).value)
+}
+
+function onEnter(event: KeyboardEvent): void {
+  (event.target as HTMLInputElement).blur()
 }
 </script>
 
@@ -27,6 +40,7 @@ function onInput(event: Event): void {
 
     <input
       :id="fieldId"
+      ref="input"
       type="text"
       class="field__input"
       :class="`field__input--${size}`"
@@ -34,6 +48,7 @@ function onInput(event: Event): void {
       :placeholder="placeholder"
       @input="onInput"
       @blur="emit('blur')"
+      @keydown.enter="onEnter"
     >
   </div>
 </template>
@@ -57,9 +72,13 @@ function onInput(event: Event): void {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: $radius-md;
-    transition: border-color $transition-fast;
+    transition: border-color $transition-fast, outline-color $transition-fast;
 
     @include focus-ring;
+
+    &:focus-visible {
+      border-color: var(--color-border-strong);
+    }
 
     &::placeholder {
       color: var(--color-text-muted);

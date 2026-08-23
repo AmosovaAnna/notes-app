@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { PropType } from "vue"
+import { ICON_BUTTON_VARIANT, type IconButtonVariant } from "~/const/variants"
 
 defineProps({
   label: { type: String, required: true },
-  tone: { type: String as PropType<"muted" | "danger">, default: "muted" },
+  variant: { type: String as PropType<IconButtonVariant>, default: ICON_BUTTON_VARIANT.MUTED },
   disabled: { type: Boolean, default: false },
 })
 </script>
@@ -12,8 +13,9 @@ defineProps({
   <button
     type="button"
     :disabled="disabled"
+    :title="label"
     class="icon-button"
-    :class="`icon-button--${tone}`"
+    :class="`icon-button--${variant}`"
   >
     <slot></slot>
     <span class="sr-only">{{ label }}</span>
@@ -32,7 +34,7 @@ defineProps({
   border: 1px solid transparent;
   border-radius: $radius-md;
   cursor: pointer;
-  transition: background $transition-fast, color $transition-fast;
+  transition: background $transition-fast, color $transition-fast, outline-color $transition-fast;
 
   @include focus-ring;
 

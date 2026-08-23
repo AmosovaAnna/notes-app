@@ -130,7 +130,7 @@ onBeforeUnmount(() => {
 
   &__window {
     width: 100%;
-    max-width: 360px;
+    max-width: 420px;
     padding: $space-5;
     background: var(--color-surface);
     border-radius: $radius-lg;
@@ -150,9 +150,14 @@ onBeforeUnmount(() => {
 
   &__actions {
     display: flex;
+    flex-direction: column;
     gap: $space-2;
-    justify-content: flex-end;
     margin-top: $space-5;
+
+    @include from($bp-sm) {
+      flex-direction: row;
+      justify-content: flex-end;
+    }
   }
 }
 </style>
