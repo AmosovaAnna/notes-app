@@ -33,8 +33,10 @@ import { ROUTES } from "~/const/routes"
   &__brand {
     display: inline-block;
     max-width: $content-width;
-    padding: $space-4;
+    margin: $space-2;
+    padding: $space-2;
     color: var(--color-text);
+    border-radius: $radius-md;
     font-weight: 600;
     font-size: 18px;
     transition: outline-color $transition-fast;

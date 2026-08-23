@@ -85,5 +85,11 @@ function onChange(event: Event): void {
   &:has(&__input:disabled) {
     cursor: default;
   }
+
+  @supports not selector(:has(*)) {
+    &__input:disabled + &__box {
+      cursor: default;
+    }
+  }
 }
 </style>

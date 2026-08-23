@@ -111,4 +111,11 @@ function onInput(event: Event): void {
     }
   }
 }
+
+@supports not selector(:has(*)) {
+  .todo-row__input:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}
 </style>

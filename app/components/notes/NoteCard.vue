@@ -114,7 +114,11 @@ const restLabel = computed(() => (
   }
 
   &__link {
+    display: inline-block;
+    margin: -$space-1 (-$space-2);
+    padding: $space-1 $space-2;
     color: inherit;
+    border-radius: $radius-md;
     text-decoration: none;
     transition: color $transition-fast;
 
