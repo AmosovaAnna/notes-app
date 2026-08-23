@@ -20,6 +20,10 @@ const isDeletedElsewhere = computed(() => (
 ))
 
 const pageTitle = computed(() => {
+  if (isMissing.value) {
+    return "Заметка не найдена"
+  }
+
   const title = editor.note?.title.trim() ?? ""
 
   if (title === "" && editor.isNew) {
@@ -60,7 +64,12 @@ function redo(): void {
 useUndoRedoHotkeys({
   onUndo: undo,
   onRedo: redo,
-  isEnabled: () => !isConfirmOpen.value && !editor.hasDraftToRestore && !isDeletedElsewhere.value,
+  isEnabled: () => (
+    !isMissing.value
+    && !isConfirmOpen.value
+    && !editor.hasDraftToRestore
+    && !isDeletedElsewhere.value
+  ),
 })
 
 function removeTodo(id: string): void {
@@ -238,7 +247,7 @@ async function deleteNote(): Promise<void> {
     <div>
       <BaseButton
         variant="primary"
-        @click="addTodo"
+        @click="addTodo()"
       >
         <IconPlus class="editor__plus" />
         Добавить пункт
@@ -267,7 +276,7 @@ async function deleteNote(): Promise<void> {
     </BaseModal>
 
     <BaseModal
-      :open="editor.hasDraftToRestore"
+      :open="editor.hasDraftToRestore && !isDeletedElsewhere"
       title="Восстановить черновик?"
       @close="editor.discardDraft"
     >
