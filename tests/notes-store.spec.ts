@@ -5,13 +5,23 @@ import type { Note } from "~/types/note"
 
 const STORAGE_KEY = "notes-app:data"
 
+function makeNote(overrides: Partial<Note> = {}): Note {
+  return {
+    id: "note-1",
+    title: "Покупки",
+    todos: [{ id: "todo-1", text: "Молоко", done: false }],
+    updatedAt: 1000,
+    ...overrides,
+  }
+}
+
 function storedNotes(): Array<Note> {
   const raw = localStorage.getItem(STORAGE_KEY)
 
   return raw === null ? [] : JSON.parse(raw).notes
 }
 
-describe("notes store", () => {
+describe("стор заметок", () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
@@ -22,66 +32,66 @@ describe("notes store", () => {
     vi.useRealTimers()
   })
 
-  it("создаёт заметку с пустым названием и без пунктов", () => {
+  it("добавляет заметку, которой ещё нет в списке", () => {
     const store = useNotesStore()
-    const note = store.createNote()
+
+    store.saveNote(makeNote())
 
     expect(store.notes).toHaveLength(1)
-    expect(note.title).toBe("")
-    expect(note.todos).toEqual([])
-    expect(note.id).not.toBe("")
+    expect(store.findNote("note-1")?.title).toBe("Покупки")
   })
 
-  it("находит заметку по id и возвращает undefined для несуществующей", () => {
+  it("обновляет существующую заметку, а не добавляет копию", () => {
     const store = useNotesStore()
-    const note = store.createNote()
 
-    expect(store.findNote(note.id)).toEqual(note)
+    store.saveNote(makeNote())
+    store.saveNote(makeNote({ title: "Дела" }))
+
+    expect(store.notes).toHaveLength(1)
+    expect(store.findNote("note-1")?.title).toBe("Дела")
+  })
+
+  it("возвращает undefined для несуществующей заметки", () => {
+    const store = useNotesStore()
+
     expect(store.findNote("нет-такой")).toBeUndefined()
   })
 
-  it("сохраняет копию заметки, не трогая исходную до вызова saveNote", () => {
+  it("обновляет время изменения при сохранении", () => {
     const store = useNotesStore()
-    const note = store.createNote()
 
-    const draft: Note = { ...note, title: "Покупки" }
+    vi.setSystemTime(new Date(5000))
+    store.saveNote(makeNote({ updatedAt: 1000 }))
 
-    expect(store.findNote(note.id)?.title).toBe("")
-
-    store.saveNote(draft)
-
-    expect(store.findNote(note.id)?.title).toBe("Покупки")
+    expect(store.findNote("note-1")?.updatedAt).toBe(5000)
   })
 
   it("удаляет заметку по id", () => {
     const store = useNotesStore()
-    const first = store.createNote()
-    const second = store.createNote()
 
-    store.deleteNote(first.id)
+    store.saveNote(makeNote())
+    store.saveNote(makeNote({ id: "note-2" }))
+
+    store.deleteNote("note-1")
 
     expect(store.notes).toHaveLength(1)
-    expect(store.notes[0]?.id).toBe(second.id)
+    expect(store.notes[0]?.id).toBe("note-2")
   })
 
   it("показывает свежие заметки первыми", () => {
     const store = useNotesStore()
-    const first = store.createNote()
-    const second = store.createNote()
 
-    store.saveNote({ ...first, title: "Изменена позже" })
+    vi.setSystemTime(new Date(1000))
+    store.saveNote(makeNote({ id: "note-1" }))
 
-    expect(store.sortedNotes[0]?.id).toBe(first.id)
-    expect(store.sortedNotes[1]?.id).toBe(second.id)
+    vi.setSystemTime(new Date(2000))
+    store.saveNote(makeNote({ id: "note-2" }))
+
+    expect(store.sortedNotes.map(note => note.id)).toEqual(["note-2", "note-1"])
   })
 
   it("загружает заметки из хранилища", () => {
-    const stored: Note = {
-      id: "note-1",
-      title: "Из хранилища",
-      todos: [],
-      updatedAt: 1000,
-    }
+    const stored = makeNote({ title: "Из хранилища" })
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, notes: [stored] }))
 
@@ -95,7 +105,7 @@ describe("notes store", () => {
     const store = useNotesStore()
     store.load()
 
-    store.createNote()
+    store.saveNote(makeNote())
     await vi.advanceTimersByTimeAsync(0)
 
     expect(storedNotes()).toHaveLength(0)
@@ -111,11 +121,11 @@ describe("notes store", () => {
 
     const setItem = vi.spyOn(localStorage, "setItem")
 
-    store.createNote()
+    store.saveNote(makeNote({ id: "note-1" }))
     await vi.advanceTimersByTimeAsync(100)
-    store.createNote()
+    store.saveNote(makeNote({ id: "note-2" }))
     await vi.advanceTimersByTimeAsync(100)
-    store.createNote()
+    store.saveNote(makeNote({ id: "note-3" }))
     await vi.advanceTimersByTimeAsync(500)
 
     expect(setItem).toHaveBeenCalledTimes(1)
@@ -126,7 +136,7 @@ describe("notes store", () => {
     const store = useNotesStore()
     store.load()
 
-    store.createNote()
+    store.saveNote(makeNote())
     await vi.advanceTimersByTimeAsync(0)
 
     store.saveNow()

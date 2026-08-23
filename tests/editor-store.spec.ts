@@ -40,11 +40,11 @@ describe("стор редактора", () => {
     const notesStore = useNotesStore()
     const editor = useEditorStore()
 
-    const source = notesStore.createNote()
-    editor.startEditing(source)
+    notesStore.saveNote(makeNote())
+    editor.startEditing(makeNote())
     editor.setTitle("Новое название")
 
-    expect(notesStore.findNote(source.id)?.title).toBe("")
+    expect(notesStore.findNote("note-1")?.title).toBe("Покупки")
     expect(editor.note?.title).toBe("Новое название")
   })
 
@@ -52,12 +52,47 @@ describe("стор редактора", () => {
     const notesStore = useNotesStore()
     const editor = useEditorStore()
 
-    const source = notesStore.createNote()
-    editor.startEditing(source)
-    editor.setTitle("Покупки")
+    notesStore.saveNote(makeNote())
+    editor.startEditing(makeNote())
+    editor.setTitle("Дела")
     editor.save()
 
-    expect(notesStore.findNote(source.id)?.title).toBe("Покупки")
+    expect(notesStore.findNote("note-1")?.title).toBe("Дела")
+    expect(editor.note).toBeNull()
+  })
+
+  it("новая заметка не попадает в список, пока её не сохранили", () => {
+    const notesStore = useNotesStore()
+    const editor = useEditorStore()
+
+    editor.startNewNote()
+    editor.setTitle("Черновая")
+
+    expect(notesStore.notes).toHaveLength(0)
+    expect(editor.isNew).toBe(true)
+  })
+
+  it("сохранение новой заметки добавляет её в список", () => {
+    const notesStore = useNotesStore()
+    const editor = useEditorStore()
+
+    editor.startNewNote()
+    editor.setTitle("Новая")
+    editor.save()
+
+    expect(notesStore.notes).toHaveLength(1)
+    expect(notesStore.notes[0]?.title).toBe("Новая")
+  })
+
+  it("отмена создания не оставляет следов", () => {
+    const notesStore = useNotesStore()
+    const editor = useEditorStore()
+
+    editor.startNewNote()
+    editor.setTitle("Передумала")
+    editor.cancel()
+
+    expect(notesStore.notes).toHaveLength(0)
     expect(editor.note).toBeNull()
   })
 
@@ -65,8 +100,7 @@ describe("стор редактора", () => {
     const notesStore = useNotesStore()
     const editor = useEditorStore()
 
-    const source = notesStore.createNote()
-    editor.startEditing(source)
+    editor.startNewNote()
 
     const filled = editor.addTodo()
     editor.addTodo()
@@ -78,7 +112,7 @@ describe("стор редактора", () => {
     editor.setTodoText(filled.id, "Молоко")
     editor.save()
 
-    expect(notesStore.findNote(source.id)?.todos).toEqual([
+    expect(notesStore.notes[0]?.todos).toEqual([
       { id: filled.id, text: "Молоко", done: false },
     ])
   })
@@ -153,6 +187,37 @@ describe("стор редактора", () => {
     expect(editor.note?.todos[0]?.done).toBe(false)
   })
 
+  it("добавляет пункт сразу после указанного", () => {
+    const editor = useEditorStore()
+
+    editor.startEditing(makeNote())
+
+    const added = editor.addTodo("todo-1")
+
+    expect(editor.note?.todos.map(todo => todo.id)).toEqual(["todo-1", added?.id, "todo-2"])
+  })
+
+  it("без указания соседа добавляет пункт в конец", () => {
+    const editor = useEditorStore()
+
+    editor.startEditing(makeNote())
+
+    const added = editor.addTodo()
+
+    expect(editor.note?.todos.map(todo => todo.id)).toEqual(["todo-1", "todo-2", added?.id])
+  })
+
+  it("добавление пункта отменяется", () => {
+    const editor = useEditorStore()
+
+    editor.startEditing(makeNote())
+    editor.addTodo("todo-1")
+
+    editor.undo()
+
+    expect(editor.note?.todos.map(todo => todo.id)).toEqual(["todo-1", "todo-2"])
+  })
+
   it("удаление пункта отменяется с сохранением позиции", () => {
     const editor = useEditorStore()
 
@@ -167,12 +232,10 @@ describe("стор редактора", () => {
   })
 
   it("сохранение сбрасывает историю", () => {
-    const notesStore = useNotesStore()
     const editor = useEditorStore()
 
-    const source = notesStore.createNote()
-    editor.startEditing(source)
-    editor.setTitle("Покупки")
+    editor.startEditing(makeNote())
+    editor.setTitle("Дела")
     editor.save()
 
     expect(editor.canUndo).toBe(false)
@@ -241,6 +304,24 @@ describe("стор редактора", () => {
     expect(nextSession.hasDraftToRestore).toBe(false)
   })
 
+  it("предлагает восстановить прерванное создание заметки", async () => {
+    const editor = useEditorStore()
+
+    editor.startNewNote()
+    editor.setTitle("Недописанная")
+    await vi.advanceTimersByTimeAsync(400)
+
+    setActivePinia(createPinia())
+    const nextSession = useEditorStore()
+    nextSession.startNewNote()
+
+    expect(nextSession.hasDraftToRestore).toBe(true)
+
+    nextSession.restoreDraft()
+
+    expect(nextSession.note?.title).toBe("Недописанная")
+  })
+
   it("отказ от черновика удаляет его из хранилища", async () => {
     const editor = useEditorStore()
 
@@ -258,12 +339,9 @@ describe("стор редактора", () => {
   })
 
   it("сохранение убирает черновик", async () => {
-    const notesStore = useNotesStore()
     const editor = useEditorStore()
 
-    const source = notesStore.createNote()
-
-    editor.startEditing(source)
+    editor.startEditing(makeNote())
     editor.setTitle("Черновик")
     await vi.advanceTimersByTimeAsync(400)
 
@@ -272,6 +350,20 @@ describe("стор редактора", () => {
     editor.save()
 
     expect(storedDraft()).toBeNull()
+  })
+
+  it("успевает записать черновик при закрытии вкладки", async () => {
+    const editor = useEditorStore()
+
+    editor.startEditing(makeNote())
+    editor.setTitle("Недописанное")
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(storedDraft()).toBeNull()
+
+    window.dispatchEvent(new Event("beforeunload"))
+
+    expect(storedDraft()?.title).toBe("Недописанное")
   })
 
   it("отмена редактирования убирает черновик", async () => {

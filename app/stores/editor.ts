@@ -21,14 +21,26 @@ function isSameNote(first: Note, second: Note): boolean {
   return JSON.stringify(first) === JSON.stringify(second)
 }
 
+function emptyNote(): Note {
+  return { id: createId(), title: "", todos: [], updatedAt: Date.now() }
+}
+
+function withoutEmptyTodos(note: Note): Note {
+  return {
+    ...note,
+    todos: note.todos.filter(todo => todo.text.trim() !== ""),
+  }
+}
+
 export const useEditorStore = defineStore("editor", () => {
   const note: Ref<Note | null> = ref(null)
-  const canUndo = ref(false)
-  const canRedo = ref(false)
+  const isNew = ref(false)
   const restorableDraft: Ref<Note | null> = ref(null)
 
   const history = createHistory()
 
+  const canUndo: ComputedRef<boolean> = computed(() => history.canUndo())
+  const canRedo: ComputedRef<boolean> = computed(() => history.canRedo())
   const hasDraftToRestore: ComputedRef<boolean> = computed(() => restorableDraft.value !== null)
 
   const saveDraft = createDebounce(() => {
@@ -37,31 +49,68 @@ export const useEditorStore = defineStore("editor", () => {
     }
   }, DRAFT_SAVE_DELAY_MS)
 
-  const finishInputAfterPause = createDebounce(() => {
-    history.finishTextInput()
-    syncHistoryFlags()
-  }, INPUT_PAUSE_MS)
+  const finishInputAfterPause = createDebounce(() => history.finishTextInput(), INPUT_PAUSE_MS)
 
   let stopWatch: WatchStopHandle | null = null
 
-  function syncHistoryFlags(): void {
-    canUndo.value = history.canUndo()
-    canRedo.value = history.canRedo()
+  function saveDraftNow(): void {
+    saveDraft.runNow()
+  }
+
+  function handleVisibilityChange(): void {
+    if (document.visibilityState === "hidden") {
+      saveDraftNow()
+    }
+  }
+
+  function watchWindowClose(): void {
+    if (typeof window === "undefined") {
+      return
+    }
+
+    forgetWindowClose()
+    window.addEventListener("beforeunload", saveDraftNow)
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+  }
+
+  function forgetWindowClose(): void {
+    if (typeof window === "undefined") {
+      return
+    }
+
+    window.removeEventListener("beforeunload", saveDraftNow)
+    document.removeEventListener("visibilitychange", handleVisibilityChange)
   }
 
   function startEditing(source: Note): void {
     const stored = readDraft()
+    const isDraftOfSource = stored !== null && stored.id === source.id && !isSameNote(stored, source)
 
-    restorableDraft.value = stored !== null && stored.id === source.id && !isSameNote(stored, source)
-      ? stored
-      : null
+    restorableDraft.value = isDraftOfSource ? stored : null
+    isNew.value = false
 
-    note.value = cloneNote(source)
+    beginSession(cloneNote(source))
+  }
+
+  function startNewNote(): void {
+    const stored = readDraft()
+    const notesStore = useNotesStore()
+    const isDraftOfUnsaved = stored !== null && notesStore.findNote(stored.id) === undefined
+
+    restorableDraft.value = isDraftOfUnsaved ? stored : null
+    isNew.value = true
+
+    beginSession(emptyNote())
+  }
+
+  function beginSession(nextNote: Note): void {
+    note.value = nextNote
     history.clear()
-    syncHistoryFlags()
 
     stopWatch?.()
     stopWatch = watch(note, () => saveDraft.schedule(), { deep: true })
+
+    watchWindowClose()
   }
 
   function restoreDraft(): void {
@@ -72,7 +121,6 @@ export const useEditorStore = defineStore("editor", () => {
     note.value = cloneNote(restorableDraft.value)
     restorableDraft.value = null
     history.clear()
-    syncHistoryFlags()
   }
 
   function discardDraft(): void {
@@ -103,7 +151,6 @@ export const useEditorStore = defineStore("editor", () => {
   function trackInput(field: TextField, before: string, after: string): void {
     history.trackTextInput(field, before, after)
     finishInputAfterPause.schedule()
-    syncHistoryFlags()
   }
 
   function toggleTodo(id: string): void {
@@ -116,46 +163,51 @@ export const useEditorStore = defineStore("editor", () => {
     finishInputNow()
     history.addChange({ kind: "todo-toggle", id, before: todo.done, after: !todo.done })
     todo.done = !todo.done
-    syncHistoryFlags()
   }
 
-  function addTodo(): TodoItem | null {
+  function addTodo(afterId?: string): TodoItem | null {
     if (note.value === null) {
       return null
     }
 
     const item: TodoItem = { id: createId(), text: "", done: false }
+    const index = insertIndexAfter(afterId)
 
     finishInputNow()
-    history.addChange({ kind: "todo-add", index: note.value.todos.length, item })
-    note.value.todos.push({ ...item })
-    syncHistoryFlags()
+    history.addChange({ kind: "todo-add", index, item })
+    note.value.todos.splice(index, 0, { ...item })
 
     return item
   }
 
-  function removeTodo(id: string): void {
-    if (note.value === null) {
-      return
+  function insertIndexAfter(afterId?: string): number {
+    const todos = note.value?.todos ?? []
+
+    if (afterId === undefined) {
+      return todos.length
     }
 
-    const index = note.value.todos.findIndex(todo => todo.id === id)
-    const item = note.value.todos[index]
+    const afterIndex = todos.findIndex(todo => todo.id === afterId)
 
-    if (item === undefined) {
+    return afterIndex === -1 ? todos.length : afterIndex + 1
+  }
+
+  function removeTodo(id: string): void {
+    const index = note.value?.todos.findIndex(todo => todo.id === id) ?? -1
+    const item = note.value?.todos[index]
+
+    if (note.value === null || item === undefined) {
       return
     }
 
     finishInputNow()
     history.addChange({ kind: "todo-remove", index, item: { ...item } })
     note.value.todos.splice(index, 1)
-    syncHistoryFlags()
   }
 
   function finishInputNow(): void {
     finishInputAfterPause.cancel()
     history.finishTextInput()
-    syncHistoryFlags()
   }
 
   function undo(): void {
@@ -164,14 +216,7 @@ export const useEditorStore = defineStore("editor", () => {
     }
 
     finishInputAfterPause.cancel()
-
-    const previous = history.undo(note.value)
-
-    if (previous !== null) {
-      note.value = previous
-    }
-
-    syncHistoryFlags()
+    note.value = history.undo(note.value) ?? note.value
   }
 
   function redo(): void {
@@ -179,13 +224,7 @@ export const useEditorStore = defineStore("editor", () => {
       return
     }
 
-    const next = history.redo(note.value)
-
-    if (next !== null) {
-      note.value = next
-    }
-
-    syncHistoryFlags()
+    note.value = history.redo(note.value) ?? note.value
   }
 
   function save(): void {
@@ -194,13 +233,7 @@ export const useEditorStore = defineStore("editor", () => {
     }
 
     finishInputNow()
-
-    const notesStore = useNotesStore()
-
-    notesStore.saveNote({
-      ...note.value,
-      todos: note.value.todos.filter(todo => todo.text.trim() !== ""),
-    })
+    useNotesStore().saveNote(withoutEmptyTodos(note.value))
 
     stopEditing()
   }
@@ -213,6 +246,7 @@ export const useEditorStore = defineStore("editor", () => {
     stopWatch?.()
     stopWatch = null
 
+    forgetWindowClose()
     saveDraft.cancel()
     finishInputAfterPause.cancel()
     history.clear()
@@ -220,7 +254,7 @@ export const useEditorStore = defineStore("editor", () => {
 
     note.value = null
     restorableDraft.value = null
-    syncHistoryFlags()
+    isNew.value = false
   }
 
   function findTodo(id: string): TodoItem | undefined {
@@ -231,8 +265,10 @@ export const useEditorStore = defineStore("editor", () => {
     note,
     canUndo,
     canRedo,
+    isNew,
     hasDraftToRestore,
     startEditing,
+    startNewNote,
     restoreDraft,
     discardDraft,
     setTitle,

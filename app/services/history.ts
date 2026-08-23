@@ -1,3 +1,4 @@
+import { ref, type Ref } from "vue"
 import type { Note } from "~/types/note"
 import { applyChange, type Change } from "~/services/changes"
 
@@ -44,27 +45,26 @@ function inputToChange(input: TextInput): Change {
 }
 
 export function createHistory(limit: number = HISTORY_LIMIT): History {
-  const undoStack: Array<Change> = []
-  const redoStack: Array<Change> = []
-
-  let currentInput: TextInput | null = null
+  const undoStack: Ref<Array<Change>> = ref([])
+  const redoStack: Ref<Array<Change>> = ref([])
+  const currentInput: Ref<TextInput | null> = ref(null)
 
   function push(change: Change): void {
-    undoStack.push(change)
-    redoStack.length = 0
+    undoStack.value.push(change)
+    redoStack.value.length = 0
 
-    if (undoStack.length > limit) {
-      undoStack.shift()
+    if (undoStack.value.length > limit) {
+      undoStack.value.shift()
     }
   }
 
   function finishTextInput(): void {
-    if (currentInput === null) {
+    if (currentInput.value === null) {
       return
     }
 
-    const finished = currentInput
-    currentInput = null
+    const finished = currentInput.value
+    currentInput.value = null
 
     if (finished.before !== finished.after) {
       push(inputToChange(finished))
@@ -78,46 +78,47 @@ export function createHistory(limit: number = HISTORY_LIMIT): History {
 
   function trackTextInput(field: TextField, before: string, after: string): void {
     const key = fieldKey(field)
+    const started = currentInput.value
 
-    if (currentInput !== null && currentInput.key === key) {
-      currentInput.after = after
+    if (started !== null && started.key === key) {
+      started.after = after
       return
     }
 
     finishTextInput()
-    currentInput = { key, field, before, after }
+    currentInput.value = { key, field, before, after }
   }
 
   function undo(note: Note): Note | null {
     finishTextInput()
 
-    const change = undoStack.pop()
+    const change = undoStack.value.pop()
 
     if (change === undefined) {
       return null
     }
 
-    redoStack.push(change)
+    redoStack.value.push(change)
 
     return applyChange(note, change, "revert")
   }
 
   function redo(note: Note): Note | null {
-    const change = redoStack.pop()
+    const change = redoStack.value.pop()
 
     if (change === undefined) {
       return null
     }
 
-    undoStack.push(change)
+    undoStack.value.push(change)
 
     return applyChange(note, change, "apply")
   }
 
   function clear(): void {
-    undoStack.length = 0
-    redoStack.length = 0
-    currentInput = null
+    undoStack.value = []
+    redoStack.value = []
+    currentInput.value = null
   }
 
   return {
@@ -127,8 +128,8 @@ export function createHistory(limit: number = HISTORY_LIMIT): History {
     undo,
     redo,
     clear,
-    canUndo: () => undoStack.length > 0 || currentInput !== null,
-    canRedo: () => redoStack.length > 0,
-    size: () => undoStack.length,
+    canUndo: () => undoStack.value.length > 0 || currentInput.value !== null,
+    canRedo: () => redoStack.value.length > 0,
+    size: () => undoStack.value.length,
   }
 }

@@ -3,7 +3,6 @@ import { computed, ref, watch, type ComputedRef, type Ref, type WatchStopHandle 
 import type { Note } from "~/types/note"
 import { readNotes, writeNotes } from "~/services/storage"
 import { createDebounce } from "~/utils/debounce"
-import { createId } from "~/utils/id"
 
 const SAVE_DELAY_MS = 500
 
@@ -35,6 +34,9 @@ export const useNotesStore = defineStore("notes", () => {
     stopWatch = watch(notes, () => save.schedule(), { deep: true })
 
     if (typeof window !== "undefined") {
+      window.removeEventListener("beforeunload", saveNow)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+
       window.addEventListener("beforeunload", saveNow)
       document.addEventListener("visibilitychange", handleVisibilityChange)
     }
@@ -42,19 +44,6 @@ export const useNotesStore = defineStore("notes", () => {
 
   function findNote(id: string): Note | undefined {
     return notes.value.find(note => note.id === id)
-  }
-
-  function createNote(): Note {
-    const note: Note = {
-      id: createId(),
-      title: "",
-      todos: [],
-      updatedAt: Date.now(),
-    }
-
-    notes.value.push(note)
-
-    return note
   }
 
   function saveNote(updated: Note): void {
@@ -79,7 +68,6 @@ export const useNotesStore = defineStore("notes", () => {
     load,
     saveNow,
     findNote,
-    createNote,
     saveNote,
     deleteNote,
   }
