@@ -36,12 +36,17 @@ export const useEditorStore = defineStore("editor", () => {
   const note: Ref<Note | null> = ref(null)
   const isNew = ref(false)
   const restorableDraft: Ref<Note | null> = ref(null)
+  const savedState = ref("")
 
   const history = createHistory()
 
   const canUndo: ComputedRef<boolean> = computed(() => history.canUndo())
   const canRedo: ComputedRef<boolean> = computed(() => history.canRedo())
   const hasDraftToRestore: ComputedRef<boolean> = computed(() => restorableDraft.value !== null)
+
+  const hasUnsavedChanges: ComputedRef<boolean> = computed(() => (
+    note.value !== null && JSON.stringify(note.value) !== savedState.value
+  ))
 
   const saveDraft = createDebounce(() => {
     if (note.value !== null) {
@@ -105,6 +110,7 @@ export const useEditorStore = defineStore("editor", () => {
 
   function beginSession(nextNote: Note): void {
     note.value = nextNote
+    savedState.value = JSON.stringify(nextNote)
     history.clear()
 
     stopWatch?.()
@@ -266,6 +272,7 @@ export const useEditorStore = defineStore("editor", () => {
     canUndo,
     canRedo,
     isNew,
+    hasUnsavedChanges,
     hasDraftToRestore,
     startEditing,
     startNewNote,

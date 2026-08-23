@@ -231,6 +231,36 @@ describe("стор редактора", () => {
     expect(editor.note?.todos.map(todo => todo.id)).toEqual(["todo-1", "todo-2"])
   })
 
+  it("не считает изменёнными только что открытую заметку", () => {
+    const editor = useEditorStore()
+
+    editor.startEditing(makeNote())
+
+    expect(editor.hasUnsavedChanges).toBe(false)
+  })
+
+  it("замечает правку названия и пунктов", () => {
+    const editor = useEditorStore()
+
+    editor.startEditing(makeNote())
+    editor.setTitle("Дела")
+
+    expect(editor.hasUnsavedChanges).toBe(true)
+  })
+
+  it("после отмены изменения считает заметку неизменённой", () => {
+    const editor = useEditorStore()
+
+    editor.startEditing(makeNote())
+    editor.toggleTodo("todo-1")
+
+    expect(editor.hasUnsavedChanges).toBe(true)
+
+    editor.undo()
+
+    expect(editor.hasUnsavedChanges).toBe(false)
+  })
+
   it("сохранение сбрасывает историю", () => {
     const editor = useEditorStore()
 
