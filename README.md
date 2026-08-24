@@ -20,19 +20,16 @@ npm run build
 npm run generate
 ```
 
+Приложение будет на `http://localhost:3000`.
+
 ### Docker
 
 ```bash
 docker compose up # или docker-compose up
 ```
 
-## Тесты
-
-```bash
-npm run test
-```
-
-Приложение будет на `http://localhost:3000`.
+Приложение будет на `http://localhost:8088`.
+Если порт занят, его можно задать своим: `APP_PORT=9000 docker compose up`.
 
 ## Принятые решения
 
